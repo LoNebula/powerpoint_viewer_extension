@@ -57,7 +57,7 @@
     "commands": [
       {
         "command": "powerpoint-viewer.openPreview",
-        "title": "PowerPoint: プレビューを開く"
+        "title": "PowerPoint: Open Preview"
       }
     ]
   },
