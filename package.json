@@ -2,7 +2,7 @@
   "name": "powerpoint-viewer",
   "displayName": "PowerPoint Viewer",
   "description": "Display PowerPoint files (.pptx) as high-quality images with vertical scrolling within VS Code",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "publisher": "LoNebula9",
   "author": {
     "name": "Shogo Miyawaki"
