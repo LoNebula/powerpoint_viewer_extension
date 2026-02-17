@@ -1,0 +1,84 @@
+{
+  "name": "powerpoint-viewer",
+  "displayName": "PowerPoint Viewer",
+  "description": "VS Code内でPowerPointファイル(.pptx)を高品質な画像として縦スクロール表示",
+  "version": "1.1.0",
+  "publisher": "your-publisher-name",
+  "author": {
+    "name": "Your Name"
+  },
+  "license": "MIT",
+  "icon": "icon.svg",
+  "galleryBanner": {
+    "color": "#D04423",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/vscode-powerpoint-viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/vscode-powerpoint-viewer/issues"
+  },
+  "homepage": "https://github.com/yourusername/vscode-powerpoint-viewer#readme",
+  "keywords": [
+    "powerpoint",
+    "pptx",
+    "viewer",
+    "preview",
+    "presentation",
+    "office",
+    "slides"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onCustomEditor:powerpoint-viewer.preview"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "powerpoint-viewer.preview",
+        "displayName": "PowerPoint Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.pptx"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "powerpoint-viewer.openPreview",
+        "title": "PowerPoint: プレビューを開く"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^16.x",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^4.9.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+  }
+}
