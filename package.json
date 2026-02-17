@@ -8,7 +8,7 @@
     "name": "Shogo Miyawaki"
   },
   "license": "MIT",
-  "icon": "./icon.svg",
+  "icon": "icon.png",
   "galleryBanner": {
     "color": "#D04423",
     "theme": "dark"
