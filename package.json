@@ -1,11 +1,11 @@
 {
   "name": "powerpoint-viewer",
   "displayName": "PowerPoint Viewer",
-  "description": "VS Code内でPowerPointファイル(.pptx)を高品質な画像として縦スクロール表示",
+  "description": "Display PowerPoint files (.pptx) as high-quality images with vertical scrolling within VS Code",
   "version": "1.1.0",
-  "publisher": "your-publisher-name",
+  "publisher": "LoNebula9",
   "author": {
-    "name": "Your Name"
+    "name": "Shogo Miyawaki"
   },
   "license": "MIT",
   "icon": "icon.svg",
@@ -15,12 +15,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/vscode-powerpoint-viewer"
+    "url": "https://github.com/LoNebula/powerpoint_viewer_extension"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/vscode-powerpoint-viewer/issues"
+    "url": "https://github.com/LoNebula/powerpoint_viewer_extension/issues"
   },
-  "homepage": "https://github.com/yourusername/vscode-powerpoint-viewer#readme",
+  "homepage": "https://github.com/LoNebula/powerpoint_viewer_extension#readme",
   "keywords": [
     "powerpoint",
     "pptx",
