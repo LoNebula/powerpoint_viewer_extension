@@ -1,3 +1,5 @@
+<img src="icon.png" width="100" align="right"/>
+
 # PowerPoint Viewer for VS Code
 
 An extension that allows you to directly preview PowerPoint files (.pptx) within VS Code.
