@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { PowerPointPreviewProvider } from './previewProvider';
+import { cleanupAllTempFiles } from './converter';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('PowerPoint Viewer拡張機能がアクティブ化されました');
@@ -46,4 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(openPreviewCommand);
 }
 
-export function deactivate() {}
+export function deactivate() {
+    cleanupAllTempFiles();
+}

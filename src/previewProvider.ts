@@ -26,30 +26,31 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
             enableScripts: true,
             localResourceRoots: [
                 vscode.Uri.file(path.dirname(document.uri.fsPath)),
+                vscode.Uri.file(require('os').tmpdir()),
                 this.context.extensionUri
             ]
         };
 
+        // ローディング画面をすぐに表示（ユーザーへのフィードバック）
+        webviewPanel.webview.html = this.getLoadingHtml(path.basename(document.uri.fsPath));
+
         // PowerPointファイルを画像に変換
         try {
-            const images = await convertPowerPointToImages(document.uri.fsPath);
-            
-            if (images.length === 0) {
+            const imagePaths = await convertPowerPointToImages(document.uri.fsPath);
+
+            if (imagePaths.length === 0) {
                 webviewPanel.webview.html = this.getErrorHtml('スライドの変換に失敗しました');
                 return;
             }
 
-            // 画像をBase64に変換
-            const imageData = await Promise.all(
-                images.map(async (imgPath) => {
-                    const buffer = await fs.promises.readFile(imgPath);
-                    return `data:image/jpeg;base64,${buffer.toString('base64')}`;
-                })
+            // ローカルファイルURIに変換（Base64エンコード不要でメモリ効率が大幅に向上）
+            const webviewUris = imagePaths.map(imgPath =>
+                webviewPanel.webview.asWebviewUri(vscode.Uri.file(imgPath)).toString()
             );
 
             webviewPanel.webview.html = this.getHtmlForWebview(
                 webviewPanel.webview,
-                imageData,
+                webviewUris,
                 path.basename(document.uri.fsPath)
             );
 
@@ -58,6 +59,61 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
             vscode.window.showErrorMessage(`PowerPointの変換エラー: ${errorMessage}`);
             webviewPanel.webview.html = this.getErrorHtml(errorMessage);
         }
+    }
+
+    private getLoadingHtml(filename: string): string {
+        return `
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${filename} - 読み込み中</title>
+                <style>
+                    body {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        font-family: system-ui, -apple-system, sans-serif;
+                        background-color: #2b2b2b;
+                        color: #cccccc;
+                        flex-direction: column;
+                        gap: 20px;
+                    }
+                    .spinner {
+                        width: 48px;
+                        height: 48px;
+                        border: 4px solid rgba(255,255,255,0.1);
+                        border-top-color: #007acc;
+                        border-radius: 50%;
+                        animation: spin 0.8s linear infinite;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                    .loading-text {
+                        font-size: 14px;
+                        color: #aaaaaa;
+                    }
+                    .filename {
+                        font-size: 12px;
+                        color: #666;
+                        max-width: 400px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="spinner"></div>
+                <div class="loading-text">スライドを変換中...</div>
+                <div class="filename">${filename}</div>
+            </body>
+            </html>
+        `;
     }
 
     private getErrorHtml(message: string): string {
@@ -108,9 +164,13 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
 
     private getHtmlForWebview(
         webview: vscode.Webview,
-        images: string[],
+        imageUris: string[],
         filename: string
     ): string {
+        // JSONとしてURIリストを埋め込む（テンプレートリテラルのエスケープ問題を回避）
+        const imageUrisJson = JSON.stringify(imageUris);
+        const slideCount = imageUris.length;
+
         return `
             <!DOCTYPE html>
             <html lang="ja">
@@ -226,6 +286,9 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
                         display: block;
                         transition: box-shadow 0.3s ease;
+                        /* 画像がロードされる前の高さを確保してレイアウトシフトを防ぐ */
+                        min-height: 200px;
+                        background-color: #1e1e1e;
                     }
 
                     .slide-wrapper.active .slide {
@@ -309,16 +372,10 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                             <button class="zoom-button" id="zoomReset" title="リセット">⟲</button>
                         </div>
                     </div>
-                    <div class="slide-count">${images.length} スライド</div>
+                    <div class="slide-count">${slideCount} スライド</div>
                 </div>
 
                 <div class="slides-container" id="slidesContainer">
-                    ${images.map((img, index) => `
-                        <div class="slide-wrapper" data-slide="${index + 1}" id="slide-${index + 1}">
-                            <div class="slide-number">スライド ${index + 1}</div>
-                            <img src="${img}" alt="Slide ${index + 1}" class="slide" loading="lazy">
-                        </div>
-                    `).join('')}
                 </div>
 
                 <div class="status-bar">
@@ -327,7 +384,7 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                             <span class="status-icon">📄</span>
                             <span id="currentSlide">スライド 1</span>
                             <span>/</span>
-                            <span>${images.length}</span>
+                            <span>${slideCount}</span>
                         </div>
                         <div class="status-item">
                             <span class="status-icon">🔍</span>
@@ -340,23 +397,56 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                 </div>
 
                 <script>
+                    // 画像URIリスト（ローカルファイルURIを使用：Base64より高速）
+                    const IMAGE_URIS = ${imageUrisJson};
+                    const SLIDE_COUNT = ${slideCount};
+
                     let currentZoom = 100;
                     const minZoom = 50;
                     const maxZoom = 200;
                     const zoomStep = 10;
 
                     const slidesContainer = document.getElementById('slidesContainer');
-                    const zoomLevel = document.getElementById('zoomLevel');
-                    const statusZoom = document.getElementById('statusZoom');
+                    const zoomLevelEl = document.getElementById('zoomLevel');
+                    const statusZoomEl = document.getElementById('statusZoom');
                     const currentSlideStatus = document.getElementById('currentSlide');
-                    const slideWrappers = document.querySelectorAll('.slide-wrapper');
 
-                    // ズーム機能
+                    // ========== スライドの動的生成 ==========
+                    // DOM要素を直接生成することでHTMLパースのオーバーヘッドを削減
+                    const fragment = document.createDocumentFragment();
+                    IMAGE_URIS.forEach((uri, index) => {
+                        const slideNum = index + 1;
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'slide-wrapper';
+                        wrapper.dataset.slide = String(slideNum);
+                        wrapper.id = 'slide-' + slideNum;
+
+                        const label = document.createElement('div');
+                        label.className = 'slide-number';
+                        label.textContent = 'スライド ' + slideNum;
+
+                        const img = document.createElement('img');
+                        img.alt = 'Slide ' + slideNum;
+                        img.className = 'slide';
+                        // loading="lazy" でビューポート外の画像を遅延読み込み
+                        img.loading = 'lazy';
+                        // decoding="async" で画像デコードを非同期化（UIブロック防止）
+                        img.decoding = 'async';
+                        img.src = uri;
+
+                        wrapper.appendChild(label);
+                        wrapper.appendChild(img);
+                        fragment.appendChild(wrapper);
+                    });
+                    slidesContainer.appendChild(fragment);
+
+                    // ========== ズーム機能 ==========
                     function updateZoom(zoom) {
                         currentZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
                         slidesContainer.style.transform = \`scale(\${currentZoom / 100})\`;
-                        zoomLevel.textContent = \`\${currentZoom}%\`;
-                        statusZoom.textContent = \`\${currentZoom}%\`;
+                        zoomLevelEl.textContent = \`\${currentZoom}%\`;
+                        statusZoomEl.textContent = \`\${currentZoom}%\`;
                     }
 
                     document.getElementById('zoomIn').addEventListener('click', () => {
@@ -387,22 +477,21 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                         }
                     });
 
-                    // スクロール位置に応じた現在のスライド検出
+                    // ========== スクロール位置に応じた現在のスライド検出 ==========
                     const observerOptions = {
                         root: null,
                         rootMargin: '-80px 0px -50% 0px',
                         threshold: 0
                     };
 
-                    let currentVisibleSlide = 1;
+                    const slideWrappers = slidesContainer.querySelectorAll('.slide-wrapper');
 
                     const observer = new IntersectionObserver((entries) => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting) {
                                 const slideNumber = entry.target.getAttribute('data-slide');
-                                currentVisibleSlide = parseInt(slideNumber);
                                 currentSlideStatus.textContent = \`スライド \${slideNumber}\`;
-                                
+
                                 // アクティブなスライドをハイライト
                                 slideWrappers.forEach(wrapper => {
                                     wrapper.classList.remove('active');
@@ -417,7 +506,7 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                         observer.observe(wrapper);
                     });
 
-                    // マウスホイールでのズーム（Ctrl+ホイール）
+                    // ========== マウスホイールでのズーム（Ctrl+ホイール）==========
                     document.addEventListener('wheel', (e) => {
                         if (e.ctrlKey || e.metaKey) {
                             e.preventDefault();
@@ -426,24 +515,7 @@ export class PowerPointPreviewProvider implements vscode.CustomReadonlyEditorPro
                         }
                     }, { passive: false });
 
-                    console.log('PowerPoint Viewer loaded with ${images.length} slides');
-                    
-                    // 画像の読み込み完了を監視
-                    const images = document.querySelectorAll('.slide');
-                    let loadedCount = 0;
-                    
-                    images.forEach((img) => {
-                        if (img.complete) {
-                            loadedCount++;
-                        } else {
-                            img.addEventListener('load', () => {
-                                loadedCount++;
-                                if (loadedCount === images.length) {
-                                    console.log('All slides loaded');
-                                }
-                            });
-                        }
-                    });
+                    console.log('PowerPoint Viewer loaded with ' + SLIDE_COUNT + ' slides');
                 </script>
             </body>
             </html>
