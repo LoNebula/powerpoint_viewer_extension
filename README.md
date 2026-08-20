@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="📊 PowerPoint Viewer for VS Code Hero Banner" width="100%" />
+  <img src="assets/hero.png" alt="📊 PowerPoint Viewer for VS Code Hero Banner" width="100%" />
 </p>
 
 <h1 align="center">📊 PowerPoint Viewer for VS Code</h1>
