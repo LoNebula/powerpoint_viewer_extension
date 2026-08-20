@@ -5,14 +5,16 @@
 <h1 align="center">📊 PowerPoint Viewer for VS Code</h1>
 
 <p align="center">
-  <strong>Directly preview PowerPoint files (.pptx) inside VS Code with high-fidelity slide rendering, continuous vertical scrolling, and zoom controls.</strong>
+  <strong>Directly Preview PowerPoint (.pptx) Presentations Inside VS Code with Continuous Vertical Scrolling & High-Fidelity Rendering.</strong>
 </p>
 
 <p align="center">
+  <a href="#-overview">Overview</a> •
   <a href="#-features">Features</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-code-architecture">Code Architecture</a> •
+  <a href="#-system-flow">System Flow</a> •
   <a href="#-project-structure">Structure</a> •
+  <a href="#-quick-start">Quick Start</a> •
   <a href="#-license">License</a>
 </p>
 
@@ -22,30 +24,47 @@
 
 ---
 
+## 📌 Overview
+
+A custom editor extension (`LoNebula9.powerpoint-viewer`) for VS Code that enables direct in-editor previewing of PowerPoint presentations (`.pptx`). Renders all slides as continuous vertical-scrolling high-resolution images, featuring zoom controls (50% to 200%), slide navigation, and automatic temporary file cleanup.
+
+---
+
 ## ✨ Features (Key Outcomes & Capabilities)
 
 | Icon | Feature | Outcome & Real Proof |
 | :---: | :--- | :--- |
-| 📜 | **Continuous Vertical Scrolling** | Scroll through all presentation slides seamlessly like a PDF without clicking next/prev buttons |
-| 🎯 | **High-Fidelity LibreOffice Engine** | Accurately renders complex PowerPoint fonts, charts, smart shapes, and formatting |
-| 🔍 | **Interactive Zoom & Navigation** | Zoom controls (50% - 200%) and quick thumbnail navigation drawer |
-| ⚡ | **In-Editor Webview Integration** | Native VS Code custom editor integration with automatic cache management |
+| 📜 | **Continuous Vertical Scrolling** | Scroll through all presentation slides seamlessly like a document without clicking next/previous |
+| 🎯 | **High-Fidelity Rendering Engine** | Faithfully renders complex PowerPoint typography, smart shapes, and formatting via LibreOffice |
+| 🔍 | **Interactive Zoom Controls** | Adjust magnification from 50% to 200% with real-time responsive scaling |
+| 🧹 | **Automated Cache Cleanup** | Cleans temporary slide image caches automatically upon editor close |
 
 ---
 
-## 📊 Architecture & Flow
+## 🔬 Code Architecture & Implementation
+
+### 🔬 Code Implementation (`src/`)
+- **`previewProvider.ts`**: Implements `vscode.CustomReadonlyEditorProvider` registered to `powerpoint-viewer.preview`, hosting the interactive Webview.
+- **`converter.ts`**: Orchestrates background headless LibreOffice rendering (`soffice --headless --convert-to pdf` followed by PDF page extraction) to render high-resolution slide PNGs.
+- **Webview UI (`getHtmlForWebview`)**: Continuous vertical slide column with zoom controls, current slide indicator, and theme-adaptive styling.
+- **Resource Management**: `cleanupAllTempFiles()` automatically purges extracted slide caches on editor disposal.
+
+---
+
+## 📊 System Flow
 
 ```mermaid
 graph LR
-  PPTX[📊 PowerPoint .pptx] --> Converter[⚙️ Headless Rendering Pipeline]
-  Converter --> Slides[🖼️ High-Res Slide Images]
-  Slides --> Webview[💻 VS Code Custom Webview Editor]
-  Webview --> User[👤 Smooth Continuous Presentation View]
-  
+  PPTX[📊 PowerPoint .pptx File] --> Provider[⚙️ PowerPointPreviewProvider]
+  Provider --> Converter[🔄 Headless Conversion Pipeline]
+  Converter --> SlideImages[🖼️ High-Res Slide PNGs]
+  SlideImages --> Webview[💻 VS Code Custom Webview Editor]
+  Webview --> Scroll[📜 Continuous Vertical Presentation View]
+
   classDef primary fill:#d97706,stroke:#b45309,stroke-width:2px,color:#fff;
   classDef accent fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#fff;
-  class Converter primary;
-  class Webview,User accent;
+  class Provider,Converter primary;
+  class SlideImages,Webview,Scroll accent;
 ```
 
 ---
@@ -54,18 +73,19 @@ graph LR
 
 ```bash
 powerpoint_viewer_extension/
-├── 📁 src/                    # Custom Editor provider & Webview logic
-├── 📁 media/                  # Icons & UI assets
-├── 📄 package.json            # Extension manifest
+├── 📁 assets/                 # Marketplace PNG hero banners
+│   └── 🎨 hero.png
+├── 📁 src/
+│   ├── 📄 previewProvider.ts  # CustomReadonlyEditorProvider & Webview UI
+│   ├── 📄 converter.ts        # LibreOffice headless conversion pipeline
+│   └── 📄 extension.ts        # Extension activation & registration
+├── 📄 package.json            # Extension manifest & custom editor schema
 └── 📄 README.md               # Documentation
 ```
 
 ---
 
 ## 🚀 Quick Start
-
-### Prerequisites
-- Check language runtimes (Python / Node.js) and system dependencies.
 
 ```bash
 # Install from Marketplace:
@@ -78,13 +98,6 @@ npm run compile
 
 ---
 
-## 💡 Usage Notes & Tips
-
-> [!TIP]
-> Ensure all required environment variables and dependencies are properly configured before execution.
-
----
-
 <p align="center">
-  Released under the <a href="LICENSE">MIT License</a>. Made with ❤️ by <a href="https://github.com/LoNebula">LoNebula</a>
+  Released under the <a href="LICENSE">MIT License</a>. Crafted with precision by <a href="https://github.com/LoNebula">LoNebula</a>
 </p>
